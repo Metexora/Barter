@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Barter Profit Checker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    :root {
+      --bg:        #080b0f;
+      --panel:     #0d1117;
+      --panel2:    #111820;
+      --border:    #1e2d3d;
+      --border2:   #26394d;
+      --text:      #c9d8e8;
+      --muted:     #5a7a96;
+      --accent:    #00d4ff;
+      --accent2:   #ff4757;
+      --good:      #2ed573;
+      --bad:       #ff4757;
+      --gold:      #ffd32a;
+      --mono:      'Share Tech Mono', monospace;
+      --sans:      'Rajdhani', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      background-image:
+        radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,212,255,0.06) 0%, transparent 70%),
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(30,45,61,0.3) 39px, rgba(30,45,61,0.3) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(30,45,61,0.15) 39px, rgba(30,45,61,0.15) 40px);
+    }
+
+    .header {
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(13,17,23,0.9);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-icon {
+      width: 36px; height: 36px;
+      background: var(--accent2);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #fff;
+    }
+    .header h1 span { color: var(--accent); }
+    .header-sub {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      margin-left: auto;
+    }
+
+    .layout {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 24px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0,0,0,0.2);
+    }
+    .panel-header h2 {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px var(--accent);
+      flex-shrink: 0;
+    }
+    .dot.red { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+    .dot.gold { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+    .panel-body { padding: 18px; }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+    .tab {
+      padding: 12px 20px;
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.18s;
+      user-select: none;
+      background: none;
+      border-top: none;
+      border-left: none;
+      border-right: none;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .tab-content { display: none; padding: 18px; }
+    .tab-content.active { display: block; }
+
+    /* DROPZONE */
+    .dropzone {
+      border: 2px dashed var(--border2);
+      border-radius: 10px;
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: rgba(0,0,0,0.2);
+      position: relative;
+    }
+    .dropzone:hover, .dropzone.drag { border-color: var(--accent); background: rgba(0,212,255,0.04); }
+    .dropzone label {
+      cursor: pointer;
+      display: block;
+    }
+    .dropzone-icon { font-size: 28px; margin-bottom: 8px; }
+    .dropzone strong { font-size: 15px; color: #fff; display: block; margin-bottom: 4px; }
+    .dropzone small { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+    .preview-wrap {
+      position: relative;
+      margin-top: 14px;
+    }
+    #preview {
+      width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 1px solid var(--border2);
+      background: #000;
+      display: none;
+    }
+    #previewProcessed {
+      width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 1px solid var(--accent);
+      background: #000;
+      display: none;
+      margin-top: 8px;
+    }
+    .preview-labels {
+      display: flex;
+      gap: 12px;
+      margin-top: 6px;
+    }
+    .preview-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+    .preview-label span { color: var(--accent); }
+
+    /* PREPROCESSING CONTROLS */
+    .preproc-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+      padding: 14px;
+      background: rgba(0,0,0,0.2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .preproc-controls label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .preproc-controls input[type=range] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+    .preproc-val {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+    }
+
+    /* PROGRESS BAR */
+    .progress-wrap {
+      margin-top: 12px;
+      display: none;
+    }
+    .progress-wrap.show { display: block; }
+    .progress-bar-bg {
+      height: 4px;
+      background: var(--border);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #00ffcc);
+      border-radius: 99px;
+      transition: width 0.15s;
+      width: 0%;
+    }
+    .progress-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* BUTTONS */
+    .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+    .btn {
+      font-family: var(--sans);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #000;
+    }
+    .btn-primary:hover { filter: brightness(1.15); }
+    .btn-primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: var(--panel2);
+      color: var(--text);
+      border: 1px solid var(--border2);
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-danger {
+      background: transparent;
+      color: var(--accent2);
+      border: 1px solid rgba(255,71,87,0.35);
+    }
+    .btn-danger:hover { background: rgba(255,71,87,0.1); }
+
+    /* STATUS */
+    .status {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 10px;
+      min-height: 18px;
+    }
+    .status.ok { color: var(--good); }
+    .status.err { color: var(--accent2); }
+
+    /* STAT GRID */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 16px;
+    }
+    .stat-card {
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--accent);
+      opacity: 0.5;
+    }
+    .stat-card.outcome::before { background: var(--good); }
+    .stat-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .stat-value {
+      font-family: var(--mono);
+      font-size: 24px;
+      font-weight: 400;
+      color: #fff;
+    }
+    .stat-value.good { color: var(--good); }
+    .stat-value.bad { color: var(--bad); }
+    .stat-value.gold { color: var(--gold); }
+
+    /* TABLE */
+    .table-wrap {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: auto;
+      max-height: 320px;
+      margin-top: 14px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    thead th {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 10px 12px;
+      background: var(--panel2);
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+      position: sticky;
+      top: 0;
+    }
+    tbody td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(0,212,255,0.03); }
+    .conf-pill {
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+    .conf-hi { background: rgba(46,213,115,0.15); color: var(--good); }
+    .conf-mid { background: rgba(255,211,42,0.15); color: var(--gold); }
+    .conf-lo { background: rgba(255,71,87,0.15); color: var(--bad); }
+
+    /* OCR RAW */
+    .ocr-raw {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #7fa8c8;
+      background: #050810;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      max-height: 140px;
+      overflow: auto;
+      white-space: pre-wrap;
+      margin-top: 14px;
+      line-height: 1.6;
+    }
+
+    /* MANUAL ENTRY */
+    .manual-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .manual-search-wrap {
+      position: relative;
+    }
+    .manual-search-wrap input {
+      padding-right: 36px;
+    }
+    .autocomplete-list {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      z-index: 50;
+      max-height: 180px;
+      overflow-y: auto;
+      display: none;
+    }
+    .autocomplete-list.show { display: block; }
+    .autocomplete-item {
+      padding: 9px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.1s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .autocomplete-item:hover, .autocomplete-item.focused { background: rgba(0,212,255,0.08); color: var(--accent); }
+    .autocomplete-price {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      background: var(--panel2);
+      color: var(--text);
+      border: 1px solid var(--border2);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    input[type="number"] { font-family: var(--mono); }
+
+    .qty-input { width: 80px; font-family: var(--mono); text-align: center; }
+
+    /* MANUAL ITEMS LIST */
+    .manual-items {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 16px;
+    }
+    .manual-item-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .manual-item-row:last-child { border-bottom: none; }
+    .manual-item-row:hover { background: rgba(0,0,0,0.2); }
+    .item-name { font-weight: 600; color: #fff; }
+    .item-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .item-qty { font-family: var(--mono); font-size: 14px; color: var(--gold); min-width: 40px; text-align: center; }
+    .item-total { font-family: var(--mono); font-size: 14px; color: var(--good); min-width: 80px; text-align: right; }
+    .item-del {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 16px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      transition: all 0.15s;
+    }
+    .item-del:hover { color: var(--bad); background: rgba(255,71,87,0.1); }
+
+    .empty-state {
+      padding: 28px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* PRICE PANEL */
+    .price-add-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .price-add-row input[type="text"] { font-size: 13px; }
+
+    /* DIRTY MONEY INPUT */
+    .dirty-money-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      padding: 14px;
+      background: var(--panel2);
+      border: 1px solid var(--border2);
+      border-radius: 10px;
+      margin-top: 16px;
+    }
+    .dirty-money-row label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .dirty-money-row input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--border2);
+      border-radius: 0;
+      padding: 4px 0;
+      font-family: var(--mono);
+      font-size: 20px;
+      color: var(--gold);
+    }
+    .dirty-money-row input:focus { border-bottom-color: var(--gold); }
+    .dirty-badge {
+      font-family: var(--mono);
+      font-size: 11px;
+      padding: 6px 12px;
+      background: rgba(255,211,42,0.1);
+      border: 1px solid rgba(255,211,42,0.25);
+      border-radius: 8px;
+      color: var(--gold);
+      white-space: nowrap;
+    }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+
+    @media (max-width: 900px) {
+      .layout { grid-template-columns: 1fr; }
+    }
+
+    /* CANVAS (hidden) */
+    #processingCanvas { display: none; }
+
+    .section-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 16px 0;
+    }
+
+    .tag {
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(0,212,255,0.1);
+      color: var(--accent);
+      letter-spacing: 0.06em;
+    }
+    .tag.red { background: rgba(255,71,87,0.1); color: var(--accent2); }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">💰</div>
+  <h1>Barter <span>Profit</span> Checker</h1>
+  <div class="header-sub">DIRTY MONEY @ 85% CLEAN VALUE</div>
+</div>
+
+<canvas id="processingCanvas"></canvas>
+
+<div class="layout">
+
+  <!-- LEFT COLUMN -->
+  <div>
+
+    <!-- MAIN CHECKER PANEL -->
+    <div class="panel">
+      <div class="tabs">
+        <button class="tab active" data-tab="ocr">📷 OCR Screenshot</button>
+        <button class="tab" data-tab="manual">✏️ Manual Entry</button>
+      </div>
+
+      <!-- OCR TAB -->
+      <div class="tab-content active" id="tab-ocr">
+        <div class="dropzone" id="dropzone">
+          <label for="fileInput">
+            <div class="dropzone-icon">🖼️</div>
+            <strong>Drop screenshot here</strong>
+            <small>or click to browse · Ctrl+V to paste</small>
+          </label>
+          <input id="fileInput" type="file" accept="image/*" hidden>
+        </div>
+
+        <div class="preview-wrap">
+          <img id="preview" alt="Original">
+          <img id="previewProcessed" alt="Preprocessed">
+          <div class="preview-labels" id="previewLabels" style="display:none;">
+            <div class="preview-label">Original</div>
+            <div class="preview-label" style="margin-left:auto;">Preprocessed → <span>sent to OCR</span></div>
+          </div>
+        </div>
+
+        <!-- PREPROCESSING CONTROLS -->
+        <div class="preproc-controls">
+          <div>
+            <label>Scale <span class="preproc-val" id="scaleVal">2.5×</span></label>
+            <input type="range" id="scaleSlider" min="1" max="4" step="0.5" value="2.5">
+          </div>
+          <div>
+            <label>Contrast <span class="preproc-val" id="contrastVal">1.8</span></label>
+            <input type="range" id="contrastSlider" min="1" max="4" step="0.1" value="1.8">
+          </div>
+          <div>
+            <label>Threshold <span class="preproc-val" id="threshVal">128</span></label>
+            <input type="range" id="threshSlider" min="60" max="200" step="1" value="128">
+          </div>
+        </div>
+
+        <div class="progress-wrap" id="progressWrap">
+          <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+          <div class="progress-label" id="progressLabel">Initialising…</div>
+        </div>
+
+        <div class="btnrow">
+          <button class="btn btn-primary" id="analyzeBtn" disabled>▶ Run OCR + Analyse</button>
+          <button class="btn btn-secondary" id="previewProcessBtn" disabled>🔍 Preview Processed</button>
+          <button class="btn btn-secondary" id="clearOcrBtn">✕ Clear</button>
+        </div>
+
+        <div class="status" id="status">Load a screenshot to begin.</div>
+
+        <details style="margin-top:12px;">
+          <summary style="font-family:var(--mono);font-size:11px;color:var(--muted);cursor:pointer;">▸ OCR raw text</summary>
+          <div id="ocrText" class="ocr-raw">No OCR run yet.</div>
+        </details>
+      </div>
+
+      <!-- MANUAL ENTRY TAB -->
+      <div class="tab-content" id="tab-manual">
+        <div class="manual-row">
+          <div class="manual-search-wrap">
+            <input type="text" id="manualItemInput" placeholder="Search item name…" autocomplete="off">
+            <div class="autocomplete-list" id="autocompleteList"></div>
+          </div>
+          <input type="number" class="qty-input" id="manualQtyInput" value="1" min="1" max="9999" placeholder="Qty">
+          <button class="btn btn-primary" id="manualAddBtn">+ Add</button>
+        </div>
+        <div class="manual-items" id="manualItemsList">
+          <div class="empty-state">No items added yet. Search above to add required items.</div>
+        </div>
+
+        <div class="dirty-money-row">
+          <div>
+            <label>Dirty Money reward</label>
+            <input type="number" id="manualDirtyInput" placeholder="e.g. 234450" min="0">
+          </div>
+          <div class="dirty-badge" id="manualDirtyCleanBadge">Clean: $0</div>
+        </div>
+
+        <div class="btnrow">
+          <button class="btn btn-primary" id="manualCalcBtn">▶ Calculate Profit</button>
+          <button class="btn btn-danger" id="manualClearBtn">✕ Clear All</button>
+        </div>
+
+        <div class="status" id="manualStatus">Add your required items and the dirty money reward.</div>
+      </div>
+    </div>
+
+    <!-- RESULTS PANEL (shared) -->
+    <div class="panel" style="margin-top:20px;">
+      <div class="panel-header">
+        <div class="dot gold"></div>
+        <h2>Contract Analysis</h2>
+        <div style="margin-left:auto;" id="resultSourceTag"></div>
+      </div>
+      <div class="panel-body">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <div class="stat-label">Dirty Money (shown)</div>
+            <div class="stat-value gold" id="resDirtyRaw">$0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Dirty Money (85% clean)</div>
+            <div class="stat-value" id="resDirtyClean">$0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Your Goods Total</div>
+            <div class="stat-value" id="resGoodsTotal">$0</div>
+          </div>
+          <div class="stat-card outcome">
+            <div class="stat-label">Outcome</div>
+            <div class="stat-value" id="resOutcome">—</div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Unit $</th>
+                <th>Total</th>
+                <th>Conf.</th>
+              </tr>
+            </thead>
+            <tbody id="resultsBody">
+              <tr><td colspan="5" class="empty-state">Run an analysis to see results.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN: PRICE LIST -->
+  <div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="dot"></div>
+        <h2>Price List</h2>
+        <span class="tag" style="margin-left:auto;" id="priceCount">0 items</span>
+      </div>
+      <div class="panel-body">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">Prices are saved in your browser. Edit any entry or add new ones.</p>
+        <div class="price-add-row">
+          <input type="text" id="priceItemInput" placeholder="Item name">
+          <input type="number" id="priceValInput" placeholder="Price" style="width:100px;">
+          <button class="btn btn-primary" id="savePriceBtn" style="white-space:nowrap;">Save</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+          <button class="btn btn-secondary" id="exportBtn" style="font-size:12px;">⬇ Export JSON</button>
+          <label class="btn btn-secondary" style="font-size:12px;cursor:pointer;">
+            ⬆ Import JSON
+            <input type="file" accept="application/json" id="importFile" hidden>
+          </label>
+          <button class="btn btn-danger" id="resetBtn" style="font-size:12px;">↺ Reset Defaults</button>
+        </div>
+        <div class="table-wrap" style="max-height:480px;">
+          <table>
+            <thead>
+              <tr><th>Item</th><th>Price</th><th></th></tr>
+            </thead>
+            <tbody id="priceBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─── DEFAULT PRICES ───────────────────────────────────────────────────
+const DEFAULT_PRICES = {
+  // Weed bags
+  "bag of og kush": 40,
+  "bag of pineapple express": 55,
+  "bag of sour diesel": 45,
+  "bag of white widow": 45,
+  "bag of sojokush": 250,
+  "bag of khalifa kush": 85,
+  // Buds
+  "old bud": 650,
+  "smelly bud": 700,
+  "smelly": 700,
+  "strange": 2000,
+  "whacky": 450,
+  "bizarre": 3200,
+  "sour diesel bud": 550,
+  // Joints
+  "og kush joint": 10,
+  "pineapple express joint": 15,
+  "sour diesel joint": 10,
+  "white widow joint": 14,
+  "sojokush joint": 124,
+  "khalifa kush joint": 50,
+  // Meth
+  "bag of meth 1g": 350,
+  "bag of meth": 350,
+  "bags of meth": 350,
+  "bags of m": 350,
+  "ounce of meth": 12000,
+  "ounces of meth": 12000,
+  "ounces of m": 12000,
+  // Cocaine
+  "bag of cocaine": 250,
+  "bags of cocaine": 250,
+  "bags of c": 250,
+  "ounce of cocaine": 8000,
+  "ounces of cocaine": 8000,
+  "ounces of c": 8000,
+  // Other
+  "barrels": 2000,
+  "procaine": 1500,
+  "install media": 20000,
+  "gps hack device": 25000,
+  "extended clip": 21250,
+};
+
+const ITEM_ALIASES = {
+  "bag of meth 1g": "bag of meth 1g",
+  "bag of m 1g": "bag of meth 1g",
+  "meth 1g": "bag of meth 1g",
+  "bag of m": "bags of m",
+  "m bag": "bags of m",
+  "meth bag": "bags of m",
+  "bag of c": "bags of c",
+  "c bag": "bags of c",
+  "cocaine bag": "bags of c",
+  "ounce of c": "ounce of cocaine",
+  "ounces of c": "ounce of cocaine",
+  "ounce of m": "ounce of meth",
+  "ounces of m": "ounce of meth",
+  "meth ounce": "ounce of meth",
+  "cocaine ounce": "ounce of cocaine",
+  "smelly bud": "smelly bud",
+  "khalifa kush j": "khalifa kush joint",
+  "gps hack": "gps hack device",
+  "installmedia": "install media",
+  "extended mag": "extended clip",
+  "sojokush bag": "bag of sojokush",
+};
+
+// ─── STATE ────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'barter_price_map_v3';
+let priceMap = loadPrices();
+let currentImageFile = null;
+let manualItems = [];
+
+// ─── DOM REFS ─────────────────────────────────────────────────────────
+const fileInput        = document.getElementById('fileInput');
+const dropzone         = document.getElementById('dropzone');
+const preview          = document.getElementById('preview');
+const previewProcessed = document.getElementById('previewProcessed');
+const previewLabels    = document.getElementById('previewLabels');
+const analyzeBtn       = document.getElementById('analyzeBtn');
+const previewProcessBtn= document.getElementById('previewProcessBtn');
+const clearOcrBtn      = document.getElementById('clearOcrBtn');
+const statusEl         = document.getElementById('status');
+const ocrTextEl        = document.getElementById('ocrText');
+const progressWrap     = document.getElementById('progressWrap');
+const progressFill     = document.getElementById('progressFill');
+const progressLabel    = document.getElementById('progressLabel');
+const canvas           = document.getElementById('processingCanvas');
+const ctx              = canvas.getContext('2d');
+
+const scaleSlider   = document.getElementById('scaleSlider');
+const contrastSlider= document.getElementById('contrastSlider');
+const threshSlider  = document.getElementById('threshSlider');
+const scaleVal      = document.getElementById('scaleVal');
+const contrastVal   = document.getElementById('contrastVal');
+const threshVal     = document.getElementById('threshVal');
+
+const manualItemInput  = document.getElementById('manualItemInput');
+const manualQtyInput   = document.getElementById('manualQtyInput');
+const manualAddBtn     = document.getElementById('manualAddBtn');
+const manualItemsList  = document.getElementById('manualItemsList');
+const manualDirtyInput = document.getElementById('manualDirtyInput');
+const manualDirtyClean = document.getElementById('manualDirtyCleanBadge');
+const manualCalcBtn    = document.getElementById('manualCalcBtn');
+const manualClearBtn   = document.getElementById('manualClearBtn');
+const manualStatus     = document.getElementById('manualStatus');
+const autocompleteList = document.getElementById('autocompleteList');
+
+const resDirtyRaw   = document.getElementById('resDirtyRaw');
+const resDirtyClean = document.getElementById('resDirtyClean');
+const resGoodsTotal = document.getElementById('resGoodsTotal');
+const resOutcome    = document.getElementById('resOutcome');
+const resultsBody   = document.getElementById('resultsBody');
+const resultSourceTag = document.getElementById('resultSourceTag');
+
+const priceBody      = document.getElementById('priceBody');
+const priceItemInput = document.getElementById('priceItemInput');
+const priceValInput  = document.getElementById('priceValInput');
+const savePriceBtn   = document.getElementById('savePriceBtn');
+const priceCount     = document.getElementById('priceCount');
+
+// ─── STORAGE ──────────────────────────────────────────────────────────
+function loadPrices() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? { ...DEFAULT_PRICES, ...JSON.parse(raw) } : { ...DEFAULT_PRICES };
+  } catch { return { ...DEFAULT_PRICES }; }
+}
+function savePrices() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(priceMap));
+  renderPrices();
+}
+function resetPrices() {
+  priceMap = { ...DEFAULT_PRICES };
+  savePrices();
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────
+function money(n) {
+  return '$' + Number(n || 0).toLocaleString();
+}
+function titleCase(s) {
+  return String(s || '').replace(/\b\w/g, c => c.toUpperCase());
+}
+function normalizeText(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[|]/g, 'l')
+    .replace(/[×x]/g, 'x')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+function canonicalName(name) {
+  const cleaned = normalizeText(name);
+  return ITEM_ALIASES[cleaned] || cleaned;
+}
+
+// ─── FUZZY MATCHING ───────────────────────────────────────────────────
+function similarity(a, b) {
+  a = normalizeText(a); b = normalizeText(b);
+  if (!a || !b) return 0;
+  if (a === b) return 1;
+  const aW = new Set(a.split(' '));
+  const bW = new Set(b.split(' '));
+  let overlap = 0;
+  bW.forEach(w => { if (aW.has(w)) overlap++; });
+  const tokenScore = overlap / Math.max(1, bW.size);
+  // bonus for substring
+  const seqScore = (a.includes(b) || b.includes(a)) ? 0.92 : charOverlap(a, b);
+  return seqScore * 0.65 + tokenScore * 0.35;
+}
+function charOverlap(a, b) {
+  const shorter = a.length < b.length ? a : b;
+  const longer  = a.length < b.length ? b : a;
+  let m = 0;
+  for (const ch of shorter) if (longer.includes(ch)) m++;
+  return m / Math.max(shorter.length, longer.length);
+}
+function bestMatch(text) {
+  const cleaned = canonicalName(text);
+  if (priceMap[cleaned] != null) return { name: cleaned, score: 1 };
+  let best = { name: '', score: 0 };
+  for (const item of Object.keys(priceMap)) {
+    const s = similarity(cleaned, item);
+    if (s > best.score) best = { name: item, score: s };
+  }
+  return best;
+}
+
+// ─── IMAGE PREPROCESSING ──────────────────────────────────────────────
+function getPreprocessParams() {
+  return {
+    scale:    parseFloat(scaleSlider.value),
+    contrast: parseFloat(contrastSlider.value),
+    thresh:   parseInt(threshSlider.value),
+  };
+}
+
+function preprocessImageToCanvas(imgEl, params) {
+  const { scale, contrast, thresh } = params;
+  const w = Math.round(imgEl.naturalWidth  * scale);
+  const h = Math.round(imgEl.naturalHeight * scale);
+  canvas.width  = w;
+  canvas.height = h;
+
+  // Draw scaled
+  ctx.drawImage(imgEl, 0, 0, w, h);
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const d = imageData.data;
+
+  for (let i = 0; i < d.length; i += 4) {
+    // Greyscale (luminance-weighted)
+    let grey = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+
+    // Contrast stretch around midpoint (128)
+    grey = (grey - 128) * contrast + 128;
+    grey = Math.max(0, Math.min(255, grey));
+
+    // Hard threshold → pure B&W
+    const bin = grey >= thresh ? 255 : 0;
+
+    d[i] = d[i+1] = d[i+2] = bin;
+    d[i+3] = 255;
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  return canvas;
+}
+
+function canvasToBlob(c) {
+  return new Promise(resolve => c.toBlob(resolve, 'image/png'));
+}
+
+// ─── SLIDERS ──────────────────────────────────────────────────────────
+scaleSlider.addEventListener('input', () => { scaleVal.textContent = scaleSlider.value + '×'; });
+contrastSlider.addEventListener('input', () => { contrastVal.textContent = contrastSlider.value; });
+threshSlider.addEventListener('input', () => { threshVal.textContent = threshSlider.value; });
+
+previewProcessBtn.addEventListener('click', () => {
+  if (!preview.src || !preview.naturalWidth) return;
+  const params = getPreprocessParams();
+  preprocessImageToCanvas(preview, params);
+  previewProcessed.src = canvas.toDataURL('image/png');
+  previewProcessed.style.display = 'block';
+  previewLabels.style.display = 'flex';
+});
+
+// ─── FILE LOADING ─────────────────────────────────────────────────────
+function loadImageFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  currentImageFile = file;
+  const url = URL.createObjectURL(file);
+  preview.onload = () => {
+    analyzeBtn.disabled = false;
+    previewProcessBtn.disabled = false;
+    setStatus(`Loaded: ${file.name || 'image'} (${preview.naturalWidth}×${preview.naturalHeight}px)`);
+  };
+  preview.src = url;
+  preview.style.display = 'block';
+  previewProcessed.style.display = 'none';
+  previewLabels.style.display = 'none';
+}
+
+fileInput.addEventListener('change', e => { loadImageFile(e.target.files?.[0]); });
+
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('drag');
+  loadImageFile(e.dataTransfer.files?.[0]);
+});
+
+document.addEventListener('paste', e => {
+  for (const item of (e.clipboardData?.items || [])) {
+    if (item.type?.startsWith('image/')) {
+      loadImageFile(item.getAsFile());
+      return;
+    }
+  }
+});
+
+clearOcrBtn.addEventListener('click', () => {
+  currentImageFile = null;
+  preview.style.display = 'none';
+  preview.removeAttribute('src');
+  previewProcessed.style.display = 'none';
+  previewLabels.style.display = 'none';
+  analyzeBtn.disabled = true;
+  previewProcessBtn.disabled = true;
+  ocrTextEl.textContent = 'No OCR run yet.';
+  setStatus('Cleared.', '');
+});
+
+// ─── OCR + ANALYSIS ───────────────────────────────────────────────────
+analyzeBtn.addEventListener('click', async () => {
+  if (!currentImageFile || !preview.naturalWidth) {
+    return setStatus('Load a screenshot first.', 'err');
+  }
+  try {
+    analyzeBtn.disabled = true;
+    progressWrap.classList.add('show');
+    setStatus('Preprocessing image…');
+
+    const params = getPreprocessParams();
+    preprocessImageToCanvas(preview, params);
+    previewProcessed.src = canvas.toDataURL('image/png');
+    previewProcessed.style.display = 'block';
+    previewLabels.style.display = 'flex';
+
+    const blob = await canvasToBlob(canvas);
+
+    // ── Pass 1: full image OCR for items ──────────────────────────
+    setStatus('OCR pass 1/2 — scanning items…');
+    const result = await Tesseract.recognize(blob, 'eng', {
+      logger: m => {
+        if (m.status) {
+          const pct = m.progress ? Math.round(m.progress * 100) : 0;
+          progressFill.style.width = Math.round(pct * 0.7) + '%';
+          progressLabel.textContent = '[1/2] ' + m.status + (m.progress ? ` ${pct}%` : '');
+        }
+      },
+      tessedit_pageseg_mode: '6',
+      tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,x-_',
+    });
+    const rawText = result.data.text || '';
+
+    // ── Pass 2: crop top-right 50% × top 35% for Dirty Money ─────
+    // Dirty Money reward is always in the top-right of the contract UI
+    setStatus('OCR pass 2/2 — reading Dirty Money (top-right)…');
+    const cw = canvas.width, ch = canvas.height;
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width  = Math.round(cw * 0.5);
+    cropCanvas.height = Math.round(ch * 0.35);
+    cropCanvas.getContext('2d').drawImage(
+      canvas,
+      Math.round(cw * 0.5), 0,          // source x,y (right half)
+      cropCanvas.width, cropCanvas.height, // source w,h
+      0, 0,                               // dest x,y
+      cropCanvas.width, cropCanvas.height  // dest w,h
+    );
+    const cropBlob = await canvasToBlob(cropCanvas);
+    const cropResult = await Tesseract.recognize(cropBlob, 'eng', {
+      logger: m => {
+        if (m.status) {
+          const pct = m.progress ? Math.round(m.progress * 100) : 0;
+          progressFill.style.width = (70 + Math.round(pct * 0.3)) + '%';
+          progressLabel.textContent = '[2/2] ' + m.status + (m.progress ? ` ${pct}%` : '');
+        }
+      },
+      tessedit_pageseg_mode: '6',
+      tessedit_char_whitelist: '0123456789,. DirtyMoneydirtymoney$',
+    });
+    const cropText = cropResult.data.text || '';
+
+    // Extract dirty money from the crop
+    let dirtyFromCrop = 0;
+    for (const line of cropText.split(/\r?\n/)) {
+      const val = parseMoneyValue(line);
+      if (val > dirtyFromCrop) dirtyFromCrop = val;
+    }
+
+    const combinedOcrText = rawText + '\n--- [top-right crop] ---\n' + cropText;
+    ocrTextEl.textContent = combinedOcrText || '(empty)';
+
+    const analysis = analyzeOCRText(rawText, dirtyFromCrop);
+    renderResults(analysis, 'OCR');
+    setStatus(`Done — ${analysis.items.length} item(s) matched. Check OCR text if something looks wrong.`, 'ok');
+  } catch (err) {
+    setStatus(`OCR failed: ${err.message || err}`, 'err');
+  } finally {
+    analyzeBtn.disabled = false;
+    progressWrap.classList.remove('show');
+    progressFill.style.width = '0%';
+  }
+});
+
+// ─── TEXT ANALYSIS ────────────────────────────────────────────────────
+function parseQty(text) {
+  const m = String(text).match(/x\s*([0-9]+)/i);
+  return m ? parseInt(m[1]) : 1;
+}
+
+function parseMoneyValue(text) {
+  const matches = String(text).match(/\$?\s*([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,})/g);
+  if (!matches?.length) return 0;
+  const last = matches[matches.length - 1].replace(/[^0-9]/g, '');
+  return parseInt(last || '0');
+}
+
+function analyzeOCRText(text, dirtyOverride) {
+  const rawLines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const collapsed = {};
+  const scores = {};
+  let dirtyRaw = dirtyOverride || 0;
+
+  const SKIP_EXACT = ['respect','active contract','required items','rewards','set waypoint','cancel contract'];
+
+  for (const rawLine of rawLines) {
+    const norm = normalizeText(rawLine);
+    if (!norm) continue;
+
+    // Always scan every line for a dirty money value (in case it appears inline)
+    if (norm.includes('dirty') || norm.includes('money')) {
+      const val = parseMoneyValue(rawLine);
+      if (val > dirtyRaw) dirtyRaw = val;
+      continue;
+    }
+
+    if (SKIP_EXACT.some(s => norm.includes(s))) continue;
+    // Skip drug tier labels like "DRUG - T3"
+    if (/^drug[\s\-]*t?\d/i.test(norm)) continue;
+    // Skip standalone numbers that are clearly reward values (no letters)
+    if (/^[\$\d,\s]+$/.test(norm)) {
+      // could be a standalone dirty money value on its own line
+      const val = parseMoneyValue(rawLine);
+      if (val > 10000 && val > dirtyRaw) dirtyRaw = val;
+      continue;
+    }
+    // Skip "Respect NNN"
+    if (/^respect\s+\d+/i.test(norm)) continue;
+
+    // Extract qty (x160 pattern)
+    const qty = parseQty(rawLine);
+    // Strip qty from item name
+    const itemText = rawLine.replace(/\s*x\s*\d+\s*$/i, '').replace(/x\s*\d+/i, '').trim();
+    if (!itemText) continue;
+
+    const canon = canonicalName(itemText);
+    if (priceMap[canon] != null) {
+      collapsed[canon] = (collapsed[canon] || 0) + qty;
+      scores[canon] = 1;
+      continue;
+    }
+    const match = bestMatch(itemText);
+    if (match.score >= 0.55) {
+      collapsed[match.name] = (collapsed[match.name] || 0) + qty;
+      if (!scores[match.name] || match.score > scores[match.name]) scores[match.name] = match.score;
+    }
+  }
+
+  const items = Object.entries(collapsed).map(([item, qty]) => ({
+    item, qty,
+    unit: priceMap[item] || 0,
+    total: (priceMap[item] || 0) * qty,
+    score: scores[item] || 0,
+  })).sort((a, b) => b.total - a.total);
+
+  const goodsTotal = items.reduce((s, r) => s + r.total, 0);
+  const dirtyClean = Math.round(dirtyRaw * 0.85);
+  const profit = dirtyClean - goodsTotal;  // you GIVE goods, RECEIVE dirty money
+  return { items, dirtyRaw, dirtyClean, goodsTotal, profit };
+}
+
+// ─── RENDER RESULTS ───────────────────────────────────────────────────
+function renderResults(data, source) {
+  resDirtyRaw.textContent  = money(data.dirtyRaw);
+  resDirtyClean.textContent = money(data.dirtyClean);
+  resGoodsTotal.textContent = money(data.goodsTotal);
+
+  if (data.dirtyRaw === 0 && data.goodsTotal === 0) {
+    resOutcome.textContent = '—';
+    resOutcome.className = 'stat-value';
+  } else if (data.profit >= 0) {
+    resOutcome.textContent = '▲ ' + money(data.profit);
+    resOutcome.className = 'stat-value good';
+  } else {
+    resOutcome.textContent = '▼ ' + money(Math.abs(data.profit));
+    resOutcome.className = 'stat-value bad';
+  }
+
+  resultSourceTag.innerHTML = source
+    ? `<span class="tag">${source}</span>`
+    : '';
+
+  resultsBody.innerHTML = '';
+  if (!data.items.length) {
+    resultsBody.innerHTML = '<tr><td colspan="5" class="empty-state">No items matched the price list.</td></tr>';
+    return;
+  }
+  for (const row of data.items) {
+    const confClass = row.score >= 0.9 ? 'conf-hi' : row.score >= 0.7 ? 'conf-mid' : 'conf-lo';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:600;color:#fff;">${titleCase(row.item)}</td>
+      <td style="font-family:var(--mono);color:var(--gold);">${row.qty}</td>
+      <td style="font-family:var(--mono);">${money(row.unit)}</td>
+      <td style="font-family:var(--mono);color:var(--good);">${money(row.total)}</td>
+      <td><span class="conf-pill ${confClass}">${Math.round(row.score * 100)}%</span></td>
+    `;
+    resultsBody.appendChild(tr);
+  }
+}
+
+function setStatus(msg, type='') {
+  statusEl.textContent = msg;
+  statusEl.className = 'status' + (type ? ' ' + type : '');
+}
+
+// ─── MANUAL ENTRY ─────────────────────────────────────────────────────
+let acFocusIdx = -1;
+
+manualItemInput.addEventListener('input', () => {
+  const q = normalizeText(manualItemInput.value);
+  if (q.length < 1) { autocompleteList.classList.remove('show'); return; }
+  const matches = Object.keys(priceMap)
+    .map(item => ({ item, score: similarity(q, item) }))
+    .filter(x => x.score > 0.2 || x.item.includes(q))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8);
+
+  autocompleteList.innerHTML = '';
+  acFocusIdx = -1;
+  if (!matches.length) { autocompleteList.classList.remove('show'); return; }
+  for (const { item } of matches) {
+    const div = document.createElement('div');
+    div.className = 'autocomplete-item';
+    div.innerHTML = `<span>${titleCase(item)}</span><span class="autocomplete-price">${money(priceMap[item])}</span>`;
+    div.addEventListener('click', () => {
+      manualItemInput.value = titleCase(item);
+      manualItemInput.dataset.canonical = item;
+      autocompleteList.classList.remove('show');
+      manualQtyInput.focus();
+    });
+    autocompleteList.appendChild(div);
+  }
+  autocompleteList.classList.add('show');
+});
+
+manualItemInput.addEventListener('keydown', e => {
+  const items = autocompleteList.querySelectorAll('.autocomplete-item');
+  if (e.key === 'ArrowDown') {
+    acFocusIdx = Math.min(acFocusIdx + 1, items.length - 1);
+    items.forEach((el, i) => el.classList.toggle('focused', i === acFocusIdx));
+    e.preventDefault();
+  } else if (e.key === 'ArrowUp') {
+    acFocusIdx = Math.max(acFocusIdx - 1, -1);
+    items.forEach((el, i) => el.classList.toggle('focused', i === acFocusIdx));
+    e.preventDefault();
+  } else if (e.key === 'Enter') {
+    if (acFocusIdx >= 0 && items[acFocusIdx]) {
+      items[acFocusIdx].click();
+    } else {
+      manualAddBtn.click();
+    }
+  } else if (e.key === 'Escape') {
+    autocompleteList.classList.remove('show');
+  }
+});
+
+document.addEventListener('click', e => {
+  if (!autocompleteList.contains(e.target) && e.target !== manualItemInput) {
+    autocompleteList.classList.remove('show');
+  }
+});
+
+function resolveManualItem(rawName) {
+  // Use stored canonical if picked from dropdown
+  if (manualItemInput.dataset.canonical) {
+    const c = manualItemInput.dataset.canonical;
+    delete manualItemInput.dataset.canonical;
+    if (priceMap[c] != null) return { name: c, score: 1 };
+  }
+  const canon = canonicalName(rawName);
+  if (priceMap[canon] != null) return { name: canon, score: 1 };
+  const match = bestMatch(rawName);
+  return match.score >= 0.45 ? match : null;
+}
+
+manualAddBtn.addEventListener('click', () => {
+  const rawName = manualItemInput.value.trim();
+  const qty = parseInt(manualQtyInput.value) || 1;
+  if (!rawName) return setManualStatus('Enter an item name.', 'err');
+
+  const resolved = resolveManualItem(rawName);
+  if (!resolved) return setManualStatus(`"${rawName}" not found in price list. Add it in the price list panel.`, 'err');
+
+  // Merge if already added
+  const existing = manualItems.find(x => x.name === resolved.name);
+  if (existing) {
+    existing.qty += qty;
+  } else {
+    manualItems.push({ name: resolved.name, qty, score: resolved.score });
+  }
+
+  manualItemInput.value = '';
+  manualQtyInput.value = 1;
+  autocompleteList.classList.remove('show');
+  renderManualItems();
+  setManualStatus(`Added: ${titleCase(resolved.name)} ×${qty}`, 'ok');
+});
+
+function renderManualItems() {
+  if (!manualItems.length) {
+    manualItemsList.innerHTML = '<div class="empty-state">No items added yet. Search above to add required items.</div>';
+    return;
+  }
+  manualItemsList.innerHTML = '';
+  for (let i = 0; i < manualItems.length; i++) {
+    const row = manualItems[i];
+    const unit = priceMap[row.name] || 0;
+    const total = unit * row.qty;
+    const div = document.createElement('div');
+    div.className = 'manual-item-row';
+    div.innerHTML = `
+      <div>
+        <div class="item-name">${titleCase(row.name)}</div>
+        <div class="item-meta">${money(unit)} each</div>
+      </div>
+      <div class="item-qty">×${row.qty}</div>
+      <div class="item-total">${money(total)}</div>
+      <button class="item-del" data-idx="${i}" title="Remove">✕</button>
+    `;
+    div.querySelector('.item-del').addEventListener('click', () => {
+      manualItems.splice(i, 1);
+      renderManualItems();
+    });
+    manualItemsList.appendChild(div);
+  }
+}
+
+manualDirtyInput.addEventListener('input', () => {
+  const v = parseInt(manualDirtyInput.value) || 0;
+  manualDirtyClean.textContent = 'Clean: ' + money(Math.round(v * 0.85));
+});
+
+manualCalcBtn.addEventListener('click', () => {
+  const dirtyRaw = parseInt(manualDirtyInput.value) || 0;
+  const dirtyClean = Math.round(dirtyRaw * 0.85);
+  const items = manualItems.map(row => ({
+    item: row.name,
+    qty: row.qty,
+    unit: priceMap[row.name] || 0,
+    total: (priceMap[row.name] || 0) * row.qty,
+    score: row.score,
+  }));
+  const goodsTotal = items.reduce((s, r) => s + r.total, 0);
+  const profit = dirtyClean - goodsTotal;  // you GIVE goods, RECEIVE dirty money
+  renderResults({ items, dirtyRaw, dirtyClean, goodsTotal, profit }, 'Manual');
+  setManualStatus('Analysis complete.', 'ok');
+  document.getElementById('resultsBody').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+});
+
+manualClearBtn.addEventListener('click', () => {
+  manualItems = [];
+  manualItemInput.value = '';
+  manualQtyInput.value = 1;
+  manualDirtyInput.value = '';
+  manualDirtyClean.textContent = 'Clean: $0';
+  renderManualItems();
+  setManualStatus('Cleared.', '');
+});
+
+function setManualStatus(msg, type='') {
+  manualStatus.textContent = msg;
+  manualStatus.className = 'status' + (type ? ' ' + type : '');
+}
+
+// ─── PRICE LIST ───────────────────────────────────────────────────────
+function renderPrices() {
+  priceBody.innerHTML = '';
+  const sorted = Object.keys(priceMap).sort();
+  priceCount.textContent = sorted.length + ' items';
+  for (const item of sorted) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:600;">${titleCase(item)}</td>
+      <td style="font-family:var(--mono);color:var(--good);">${money(priceMap[item])}</td>
+      <td>
+        <button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" data-use="${item}">Use</button>
+      </td>
+    `;
+    tr.querySelector('[data-use]').addEventListener('click', () => {
+      priceItemInput.value = item;
+      priceValInput.value = priceMap[item];
+    });
+    priceBody.appendChild(tr);
+  }
+}
+
+savePriceBtn.addEventListener('click', () => {
+  const item = normalizeText(priceItemInput.value);
+  const price = parseFloat(priceValInput.value);
+  if (!item) return;
+  if (!isFinite(price) || price < 0) return;
+  priceMap[item] = price;
+  savePrices();
+  priceItemInput.value = '';
+  priceValInput.value = '';
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(priceMap, null, 2)], { type: 'application/json' });
+  const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'barter_prices.json' });
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById('importFile').addEventListener('change', async e => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  try {
+    const incoming = JSON.parse(await file.text());
+    priceMap = { ...priceMap, ...incoming };
+    savePrices();
+  } catch(err) {
+    alert('Import failed: ' + err.message);
+  }
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (confirm('Reset all prices to defaults?')) resetPrices();
+});
+
+// ─── TABS ─────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ─── INIT ─────────────────────────────────────────────────────────────
+renderPrices();
+renderManualItems();
+</script>
+</body>
+</html>
