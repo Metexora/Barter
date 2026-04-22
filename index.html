@@ -1244,9 +1244,32 @@ function analyzeOCRText(text, dirtyOverride) {
   return { items, dirtyRaw, dirtyClean, goodsTotal, profit };
 }
 
+// ─── LIVE RESULT STATE ────────────────────────────────────────────────
+let liveResult = null;
+
+function recalcAndRefreshSummary() {
+  if (!liveResult) return;
+  const goodsTotal = liveResult.items.reduce((s, r) => s + (priceMap[r.item] || 0) * r.qty, 0);
+  const dirtyClean = liveResult.dirtyClean;
+  const profit = dirtyClean - goodsTotal;
+  resGoodsTotal.textContent = money(goodsTotal);
+  if (liveResult.dirtyRaw === 0 && goodsTotal === 0) {
+    resOutcome.textContent = '—'; resOutcome.className = 'stat-value';
+  } else if (profit >= 0) {
+    resOutcome.textContent = '▲ ' + money(profit); resOutcome.className = 'stat-value good';
+  } else {
+    resOutcome.textContent = '▼ ' + money(Math.abs(profit)); resOutcome.className = 'stat-value bad';
+  }
+  resultsBody.querySelectorAll('tr[data-item]').forEach(tr => {
+    const row = liveResult.items.find(r => r.item === tr.dataset.item);
+    if (row) tr.querySelector('.res-total').textContent = money((priceMap[row.item] || 0) * row.qty);
+  });
+}
+
 // ─── RENDER RESULTS ───────────────────────────────────────────────────
 function renderResults(data, source) {
-  resDirtyRaw.textContent  = money(data.dirtyRaw);
+  liveResult = data;
+  resDirtyRaw.textContent   = money(data.dirtyRaw);
   resDirtyClean.textContent = money(data.dirtyClean);
   resGoodsTotal.textContent = money(data.goodsTotal);
 
@@ -1261,9 +1284,7 @@ function renderResults(data, source) {
     resOutcome.className = 'stat-value bad';
   }
 
-  resultSourceTag.innerHTML = source
-    ? `<span class="tag">${source}</span>`
-    : '';
+  resultSourceTag.innerHTML = source ? `<span class="tag">${source}</span>` : '';
 
   resultsBody.innerHTML = '';
   if (!data.items.length) {
@@ -1273,13 +1294,27 @@ function renderResults(data, source) {
   for (const row of data.items) {
     const confClass = row.score >= 0.9 ? 'conf-hi' : row.score >= 0.7 ? 'conf-mid' : 'conf-lo';
     const tr = document.createElement('tr');
+    tr.dataset.item = row.item;
     tr.innerHTML = `
       <td style="font-weight:600;color:#fff;">${titleCase(row.item)}</td>
-      <td style="font-family:var(--mono);color:var(--gold);">${row.qty}</td>
+      <td>
+        <input type="number" class="res-qty-input" value="${row.qty}" min="1" max="9999"
+          title="Click to correct OCR quantity — totals update live"
+          style="width:68px;background:transparent;border:none;border-bottom:1px dashed var(--border2);
+                 border-radius:0;padding:2px 4px;font-family:var(--mono);font-size:14px;
+                 color:var(--gold);text-align:center;outline:none;cursor:text;">
+      </td>
       <td style="font-family:var(--mono);">${money(row.unit)}</td>
-      <td style="font-family:var(--mono);color:var(--good);">${money(row.total)}</td>
+      <td style="font-family:var(--mono);color:var(--good);" class="res-total">${money(row.total)}</td>
       <td><span class="conf-pill ${confClass}">${Math.round(row.score * 100)}%</span></td>
     `;
+    const qtyInput = tr.querySelector('.res-qty-input');
+    qtyInput.addEventListener('focus', () => qtyInput.style.borderBottomColor = 'var(--accent)');
+    qtyInput.addEventListener('blur',  () => qtyInput.style.borderBottomColor = 'var(--border2)');
+    qtyInput.addEventListener('input', () => {
+      row.qty = parseInt(qtyInput.value) || 0;
+      recalcAndRefreshSummary();
+    });
     resultsBody.appendChild(tr);
   }
 }
