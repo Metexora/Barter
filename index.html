@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BARTER // Contract Profit Checker</title>
+<title>BARTER // Contract Profit Checker v7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
@@ -424,6 +424,112 @@ kbd{
   text-align:center;color:var(--muted);
 }
 .footnote span{background:var(--ink);color:var(--acid);padding:1px 6px;margin:0 3px;border-radius:2px}
+
+/* ============ TRACKER ============ */
+.tracker-section{margin-top:14px}
+.tracker-grid{
+  display:grid;
+  grid-template-columns: 1.2fr 2fr;
+  gap:14px;
+  align-items:start;
+}
+@media (max-width:1024px){.tracker-grid{grid-template-columns:1fr}}
+
+.session-controls{
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+  padding:10px 12px;background:var(--bg);
+  border:2px solid var(--ink);border-radius:var(--r);
+  margin-bottom:10px;
+}
+.session-timer{
+  font-family:var(--mono);font-weight:700;
+  font-size:14px;letter-spacing:.6px;
+  padding:5px 10px;background:var(--ink);color:var(--acid);
+  border-radius:3px;min-width:96px;text-align:center;
+}
+.session-timer.idle{color:var(--muted)}
+.session-status{
+  font-family:var(--mono);font-size:9.5px;font-weight:700;
+  letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);
+  flex:1;min-width:120px;
+}
+.session-status .live-dot{
+  display:inline-block;width:7px;height:7px;border-radius:50%;
+  background:var(--green);margin-right:5px;vertical-align:middle;
+  animation:pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse{50%{opacity:.35}}
+
+.stats-row{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:8px;margin-bottom:10px;
+}
+@media (max-width:640px){.stats-row{grid-template-columns:repeat(2,1fr)}}
+.stat-tile{
+  border:2px solid var(--ink);border-radius:var(--r);
+  background:var(--paper);
+  padding:8px 10px;
+  box-shadow:var(--shadow-sm);
+}
+.stat-tile.session{background:var(--acid)}
+.stat-tile.today{background:var(--cyan)}
+.stat-tile.week{background:var(--gold)}
+.stat-tile.all{background:var(--bg-alt)}
+.stat-label{
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  letter-spacing:1.2px;text-transform:uppercase;
+  margin-bottom:3px;
+}
+.stat-main{
+  font-family:var(--display);
+  font-size:18px;line-height:1;letter-spacing:-.4px;
+}
+.stat-sub{
+  font-family:var(--mono);font-size:10px;font-weight:600;
+  margin-top:4px;opacity:.85;
+}
+.stat-sub.neg{color:var(--red)}
+
+.history-wrap{
+  border:2px solid var(--ink);border-radius:var(--r);
+  background:var(--bg);overflow:auto;
+  max-height:320px;
+}
+.history-table{width:100%;border-collapse:collapse;font-size:12px}
+.history-table th{
+  position:sticky;top:0;
+  text-align:left;
+  font-family:var(--mono);font-size:9px;font-weight:700;
+  letter-spacing:1.1px;text-transform:uppercase;
+  padding:6px 9px;background:var(--ink);color:var(--paper);
+  z-index:1;
+}
+.history-table th.num{text-align:right}
+.history-table td{
+  padding:6px 9px;
+  border-bottom:1px solid rgba(0,0,0,.18);
+  font-family:var(--mono);font-size:11.5px;font-weight:600;
+  white-space:nowrap;
+}
+.history-table td.num{text-align:right}
+.history-table tr:nth-child(even) td{background:rgba(0,0,0,.035)}
+.history-table tr:last-child td{border-bottom:none}
+.h-profit{color:var(--ink);font-weight:700}
+.h-profit.pos{color:var(--green)}
+.h-profit.neg{color:var(--red)}
+.h-del{
+  font-family:var(--mono);font-size:10px;font-weight:700;
+  width:22px;height:22px;padding:0;line-height:1;
+  background:var(--paper);border:1.5px solid var(--ink);border-radius:3px;
+  cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+}
+.h-del:hover{background:var(--hot);color:var(--paper)}
+.history-empty{
+  padding:22px 12px;text-align:center;
+  font-family:var(--mono);font-size:11px;color:var(--muted);
+}
+.tracker-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 </style>
 </head>
 <body>
@@ -435,7 +541,7 @@ kbd{
       <div class="topbar-pill">CONTRACT // PROFIT CHECKER</div>
       <div class="topbar-pill alt">DRUG · T1–T3</div>
     </div>
-    <div class="topbar-tag">v6 · LOCAL</div>
+    <div class="topbar-tag">v7 · TRACKER</div>
   </div>
 
   <div class="main-grid">
@@ -459,6 +565,7 @@ Respect586"></textarea>
           <div class="paste-hint">Auto-parses on paste · or press <kbd>ANALYSE</kbd></div>
           <div class="btn-row">
             <button class="btn btn-primary" id="analyseBtn">▶ Analyse</button>
+            <button class="btn" id="logBtn" title="Log this contract to your session history" disabled>＋ Log Contract</button>
             <button class="btn" id="clearBtn">✕ Clear</button>
           </div>
         </div>
@@ -558,6 +665,74 @@ Respect586"></textarea>
       </div>
     </div>
 
+  </div>
+
+  <!-- ============ SESSION TRACKER ============ -->
+  <div class="tracker-section">
+    <div class="card">
+      <div class="card-head">
+        <div class="dot dot-green"></div>
+        <h2>Session Tracker · Profit / Hr</h2>
+        <span class="stamp">LIVE</span>
+      </div>
+      <div class="card-body">
+
+        <div class="session-controls">
+          <div class="session-timer idle" id="sessionTimer">00:00:00</div>
+          <div class="session-status" id="sessionStatus">Session paused — start to track profit/hr</div>
+          <button class="btn btn-primary btn-sm" id="sessionStartBtn">▶ Start</button>
+          <button class="btn btn-sm" id="sessionPauseBtn" disabled>❚❚ Pause</button>
+          <button class="btn btn-sm" id="sessionEndBtn" disabled>■ End Session</button>
+        </div>
+
+        <div class="stats-row">
+          <div class="stat-tile session">
+            <div class="stat-label">▶ Session</div>
+            <div class="stat-main" id="statSessionRate">$0/hr</div>
+            <div class="stat-sub" id="statSessionSub">0 contracts · $0</div>
+          </div>
+          <div class="stat-tile today">
+            <div class="stat-label">☀ Today</div>
+            <div class="stat-main" id="statTodayRate">$0/hr</div>
+            <div class="stat-sub" id="statTodaySub">0 contracts · $0</div>
+          </div>
+          <div class="stat-tile week">
+            <div class="stat-label">📅 This Week</div>
+            <div class="stat-main" id="statWeekRate">$0/hr</div>
+            <div class="stat-sub" id="statWeekSub">0 contracts · $0</div>
+          </div>
+          <div class="stat-tile all">
+            <div class="stat-label">∞ All-Time</div>
+            <div class="stat-main" id="statAllRate">$0/hr</div>
+            <div class="stat-sub" id="statAllSub">0 contracts · $0</div>
+          </div>
+        </div>
+
+        <div class="history-wrap">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Items</th>
+                <th class="num">Goods</th>
+                <th class="num">Clean $</th>
+                <th class="num">Profit</th>
+                <th class="num">Resp</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+          <div class="history-empty" id="historyEmpty">No logged contracts yet — analyse one and hit <kbd>＋ Log Contract</kbd></div>
+        </div>
+
+        <div class="tracker-actions">
+          <button class="btn btn-sm" id="historyExportBtn">⬇ Export History</button>
+          <button class="btn btn-danger btn-sm" id="historyClearBtn">↺ Clear All History</button>
+        </div>
+
+      </div>
+    </div>
   </div>
 
   <div class="footnote"><span>BARTER//</span> Built for hustlers · <span>LOCAL</span> data never leaves your browser</div>
@@ -1073,6 +1248,261 @@ if(ta.value.trim()) runAnalysis();
     document.getElementById('emptyState').style.display='';
   });
 })();
+
+// ── SESSION TRACKER ───────────────────────────────────────────────
+const HISTORY_KEY = 'barter_v7_history';
+const SESSION_KEY = 'barter_v7_session';
+
+let history = loadHistory();
+let session = loadSession();
+
+function loadHistory(){
+  try{ const raw = localStorage.getItem(HISTORY_KEY); return raw ? JSON.parse(raw) : []; }
+  catch{ return []; }
+}
+function saveHistory(){ localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); }
+function loadSession(){
+  try{
+    const raw = localStorage.getItem(SESSION_KEY);
+    if(!raw) return newSession();
+    const s = JSON.parse(raw);
+    return (s && typeof s === 'object') ? s : newSession();
+  }catch{ return newSession(); }
+}
+function newSession(){
+  return { startedAt:null, accumulatedMs:0, runningSince:null, contractIds:[] };
+}
+function saveSession(){ localStorage.setItem(SESSION_KEY, JSON.stringify(session)); }
+
+function sessionElapsedMs(){
+  let ms = session.accumulatedMs || 0;
+  if(session.runningSince) ms += Date.now() - session.runningSince;
+  return ms;
+}
+function fmtDuration(ms){
+  const s = Math.max(0, Math.floor(ms/1000));
+  const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(sec).padStart(2,'0');
+}
+function fmtRate(profit, ms){
+  if(!ms || ms < 1000) return '$0/hr';
+  const hr = ms / 3600000;
+  const rate = profit / hr;
+  const sign = rate < 0 ? '-' : '';
+  return sign + '$' + Math.round(Math.abs(rate)).toLocaleString() + '/hr';
+}
+function fmtRelative(ts){
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff/60000);
+  if(m < 1) return 'just now';
+  if(m < 60) return m+'m ago';
+  const h = Math.floor(m/60);
+  if(h < 24) return h+'h ago';
+  const d = Math.floor(h/24);
+  if(d < 7) return d+'d ago';
+  return new Date(ts).toLocaleDateString();
+}
+function startOfToday(){ const d = new Date(); d.setHours(0,0,0,0); return d.getTime(); }
+function startOfWeek(){
+  const d = new Date(); d.setHours(0,0,0,0);
+  const day = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - day);
+  return d.getTime();
+}
+
+const tEl = document.getElementById('sessionTimer');
+const sEl = document.getElementById('sessionStatus');
+const startBtn = document.getElementById('sessionStartBtn');
+const pauseBtn = document.getElementById('sessionPauseBtn');
+const endBtn   = document.getElementById('sessionEndBtn');
+
+function updateSessionUI(){
+  const running = !!session.runningSince;
+  const has = (session.accumulatedMs||0) > 0 || running;
+  tEl.textContent = fmtDuration(sessionElapsedMs());
+  tEl.classList.toggle('idle', !running);
+  if(running){
+    sEl.innerHTML = '<span class="live-dot"></span>Tracking · '+session.contractIds.length+' contract(s) this session';
+  } else if(has){
+    sEl.textContent = 'Paused · '+session.contractIds.length+' contract(s) · '+fmtDuration(session.accumulatedMs)+' logged';
+  } else {
+    sEl.textContent = 'Session paused — start to track profit/hr';
+  }
+  startBtn.disabled = running;
+  pauseBtn.disabled = !running;
+  endBtn.disabled = !has;
+  startBtn.textContent = (has && !running) ? '▶ Resume' : '▶ Start';
+}
+
+startBtn.addEventListener('click', ()=>{
+  if(session.runningSince) return;
+  if(!session.startedAt) session.startedAt = Date.now();
+  session.runningSince = Date.now();
+  saveSession(); updateSessionUI(); renderStats();
+});
+pauseBtn.addEventListener('click', ()=>{
+  if(!session.runningSince) return;
+  session.accumulatedMs = (session.accumulatedMs||0) + (Date.now() - session.runningSince);
+  session.runningSince = null;
+  saveSession(); updateSessionUI(); renderStats();
+});
+endBtn.addEventListener('click', ()=>{
+  if(!confirm('End current session? Timer + linked contracts will reset (history is kept).')) return;
+  session = newSession(); saveSession(); updateSessionUI(); renderStats();
+});
+
+setInterval(()=>{
+  if(session.runningSince){
+    tEl.textContent = fmtDuration(sessionElapsedMs());
+    renderStats();
+  }
+}, 1000);
+
+const logBtn = document.getElementById('logBtn');
+function updateLogBtnState(){
+  const hasContract = liveItems.length > 0 || liveDirty > 0;
+  const missing = liveItems.some(r => r.price == null);
+  logBtn.disabled = !hasContract || missing;
+  logBtn.title = !hasContract ? 'Analyse a contract first'
+    : missing ? 'Fill in all missing prices before logging'
+    : 'Log this contract to your session history';
+}
+logBtn.addEventListener('click', ()=>{
+  if(logBtn.disabled) return;
+  const goods = goodsTotal();
+  const clean = cleanDirty();
+  const p = profit();
+  const respect = parseInt(document.getElementById('respectDisplay').dataset.val || 0) || 0;
+  const itemSummary = liveItems.map(r => ({
+    name: titleCase(r.matchedName || r.rawName),
+    qty: r.qty,
+    unit: r.price || 0,
+  }));
+  const entry = {
+    id: 'c_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+    ts: Date.now(),
+    items: itemSummary,
+    itemCount: liveItems.reduce((s,r)=>s+r.qty,0),
+    goods, clean, dirty: liveDirty, profit: p, respect,
+    inSession: !!session.runningSince,
+  };
+  history.unshift(entry);
+  if(session.runningSince) session.contractIds.push(entry.id);
+  saveHistory(); saveSession();
+  renderStats(); renderHistory(); updateSessionUI();
+  logBtn.textContent = '✓ Logged';
+  setTimeout(()=>{ logBtn.textContent = '＋ Log Contract'; }, 1400);
+});
+
+function deleteEntry(id){
+  history = history.filter(e => e.id !== id);
+  if(session.contractIds) session.contractIds = session.contractIds.filter(x => x !== id);
+  saveHistory(); saveSession();
+  renderStats(); renderHistory(); updateSessionUI();
+}
+
+function renderHistory(){
+  const tbody = document.getElementById('historyBody');
+  const empty = document.getElementById('historyEmpty');
+  tbody.innerHTML = '';
+  if(!history.length){ empty.style.display=''; return; }
+  empty.style.display='none';
+  const rows = history.slice(0, 50);
+  for(const e of rows){
+    const tr = document.createElement('tr');
+    const itemsLabel = e.items && e.items.length
+      ? (e.items.length === 1
+          ? e.items[0].qty+'× '+e.items[0].name
+          : e.itemCount+' units · '+e.items.length+' types')
+      : '—';
+    const profitClass = e.profit > 0 ? 'pos' : e.profit < 0 ? 'neg' : '';
+    const profitStr = (e.profit >= 0 ? '+' : '-') + '$' + Math.abs(Math.round(e.profit)).toLocaleString();
+    const fullItems = (e.items||[]).map(i=>i.qty+'× '+i.name).join(', ');
+    tr.innerHTML = `
+      <td title="${new Date(e.ts).toLocaleString()}">${fmtRelative(e.ts)}${e.inSession?' <span style="color:var(--green)">●</span>':''}</td>
+      <td title="${fullItems}">${itemsLabel}</td>
+      <td class="num">${money(e.goods)}</td>
+      <td class="num">${money(e.clean)}</td>
+      <td class="num h-profit ${profitClass}">${profitStr}</td>
+      <td class="num">${(e.respect||0).toLocaleString()}</td>
+      <td class="num"><button class="h-del" data-id="${e.id}" title="Remove this entry">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  }
+  tbody.querySelectorAll('.h-del').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      if(confirm('Remove this contract from history?')) deleteEntry(b.dataset.id);
+    });
+  });
+}
+
+function renderStats(){
+  const sessionEntries = history.filter(e => session.contractIds.includes(e.id));
+  const sessProfit = sessionEntries.reduce((s,e)=>s+e.profit,0);
+  const sessMs = sessionElapsedMs();
+
+  const todayStart = startOfToday();
+  const weekStart  = startOfWeek();
+  const todayEntries = history.filter(e => e.ts >= todayStart);
+  const weekEntries  = history.filter(e => e.ts >= weekStart);
+
+  function rateFor(entries){
+    if(!entries.length) return {ms:0, profit:0};
+    const profitSum = entries.reduce((s,e)=>s+e.profit,0);
+    if(entries.length === 1) return {ms: 5*60*1000, profit: profitSum};
+    const tsList = entries.map(e=>e.ts);
+    const span = Math.max(...tsList) - Math.min(...tsList);
+    return {ms: Math.max(span, 5*60*1000), profit: profitSum};
+  }
+
+  const today = rateFor(todayEntries);
+  const week  = rateFor(weekEntries);
+  const all   = rateFor(history);
+
+  function setSub(id, count, p){
+    const el = document.getElementById(id);
+    const sign = p >= 0 ? '+' : '-';
+    el.textContent = count+' contract'+(count===1?'':'s')+' · '+sign+'$'+Math.abs(Math.round(p)).toLocaleString();
+    el.classList.toggle('neg', p < 0);
+  }
+
+  document.getElementById('statSessionRate').textContent = fmtRate(sessProfit, sessMs);
+  setSub('statSessionSub', sessionEntries.length, sessProfit);
+  document.getElementById('statTodayRate').textContent = fmtRate(today.profit, today.ms);
+  setSub('statTodaySub', todayEntries.length, today.profit);
+  document.getElementById('statWeekRate').textContent = fmtRate(week.profit, week.ms);
+  setSub('statWeekSub', weekEntries.length, week.profit);
+  document.getElementById('statAllRate').textContent = fmtRate(all.profit, all.ms);
+  setSub('statAllSub', history.length, all.profit);
+}
+
+// Hook into existing flows so Log button enables/disables correctly
+const _origUpdateVerdict = updateVerdict;
+updateVerdict = function(){ _origUpdateVerdict(); updateLogBtnState(); };
+const _origRenderContract = renderContract;
+renderContract = function(){ _origRenderContract(); updateLogBtnState(); };
+
+// History export / clear
+document.getElementById('historyExportBtn').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(history,null,2)], {type:'application/json'});
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob), download: 'barter_history.json',
+  });
+  a.click(); URL.revokeObjectURL(a.href);
+});
+document.getElementById('historyClearBtn').addEventListener('click', ()=>{
+  if(!history.length) return;
+  if(!confirm('Delete ALL '+history.length+' logged contracts? This cannot be undone.')) return;
+  history = [];
+  session.contractIds = [];
+  saveHistory(); saveSession();
+  renderStats(); renderHistory(); updateSessionUI();
+});
+
+renderHistory();
+renderStats();
+updateSessionUI();
+updateLogBtnState();
 </script>
 </body>
 </html>
